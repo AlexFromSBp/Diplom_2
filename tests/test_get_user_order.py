@@ -9,16 +9,35 @@ from data.ingredients import Ingredient
 class TestGetOrderUser:
 
     @allure.description("Успешное получение доступных заказов авторизованного пользователя")
-    @allure.title("")
+    @allure.title("Получение заказов авторизованного пользователя")
     def test_get_order_user_with_auth(self, create_user):
-        token = {"Authorization": create_user[3]}
-        requests_create_order = requests.post(f"{Urls.MAIN_URL}{Handlers.CREATE_ORDER}", headers=token, data=Ingredient.correct_ingredients_data)
-        response_get_order = requests.get(f"{Urls.MAIN_URL}{Handlers.GET_ORDERS}", headers=token)
-        assert response_get_order.status_code == 200 and response_get_order.json()["orders"][0]["number"] == requests_create_order.json()["order"]["number"]
+        with allure.step("Подготовить токен авторизации"):
+            token = {"Authorization": create_user[3]}
 
+        with allure.step("Создать тестовый заказ"):
+            requests_create_order = requests.post(
+                f"{Urls.MAIN_URL}{Handlers.CREATE_ORDER}",
+                headers=token,
+                data=Ingredient.correct_ingredients_data
+            )
+
+        with allure.step("Получить список заказов пользователя"):
+            response_get_order = requests.get(
+                f"{Urls.MAIN_URL}{Handlers.GET_ORDERS}",
+                headers=token
+            )
+
+        with allure.step("Проверить статус код и соответствие номеров заказов"):
+            assert response_get_order.status_code == 200
+            assert response_get_order.json()["orders"][0]["number"] == \
+                   requests_create_order.json()["order"]["number"]
 
     @allure.description("Возникновение ошибки при получение заказов пользователя без авторизации")
-    @allure.title("")
+    @allure.title("Попытка получения заказов без авторизации")
     def test_get_order_user_not_auth(self):
-        r = requests.get(f"{Urls.MAIN_URL}{Handlers.GET_ORDERS}")
-        assert r.status_code == 401 and r.json()["message"] == "You should be authorised"
+        with allure.step("Отправить GET-запрос без авторизации"):
+            r = requests.get(f"{Urls.MAIN_URL}{Handlers.GET_ORDERS}")
+
+        with allure.step("Проверить статус код и сообщение об ошибке"):
+            assert r.status_code == 401
+            assert r.json()["message"] == "You should be authorised"
